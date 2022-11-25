@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\Bug;
+use App\Sample;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
@@ -118,4 +119,30 @@ Route::get('bug', function () {
     Mail::to('example@example.com')->send(new Bug());
 
     return new Bug();
+});
+
+/**
+ * It doesn't just affect mailable views though and after further investigation
+ * it's evident that the value returned from the first execution of the prop
+ * is in fact used in the view, meaning the second execution of the prop is not
+ * retained.
+ *
+ * Take this Sample class that has a counter (start: 0). Every `$sample->get()`
+ * call increments this value by one and returns the incremented value.
+ *
+ * The view renders with "1" however it gets hit twice still as demonstrated in
+ * the dd() and logs. Example:
+ *
+ * [2022-11-25 23:37:53] local.DEBUG: Sample::get() hit: 1
+ * [2022-11-25 23:37:53] local.DEBUG: Sample::get() hit: 2
+ *
+ * As mentioned above, there's a workaround for it and that is to compute the
+ * variable before it gets used in the prop.
+ */
+Route::get('bug-as-view', function () {
+    $view = view('bug-as-view', [
+        'sample' => $sample = new Sample(),
+    ])->render();
+
+    dd($sample, $view);
 });
